@@ -1,87 +1,155 @@
-# errsplain ⚡
+<div align="center">
 
-AI-powered terminal error summarizer. When a command fails, it instantly streams a plain-English explanation below the raw error — before you've finished reading line 1.
+# clifr ⚡
+
+**AI-powered terminal error summarizer**
+
+When a command fails, clifr instantly explains what went wrong and gives you the exact fix — in plain English, before you've finished reading line one.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
+[![Powered by Groq](https://img.shields.io/badge/powered%20by-Groq-orange)](https://groq.com)
+
+</div>
+
+---
+
+## demo
 
 ```
-$ ep npm install
+$ git push origin fake-branch
+fatal: 'fake-branch' does not appear to be a git repository
 
-npm ERR! code EACCES
-npm ERR! syscall mkdir
-npm ERR! path /usr/local/lib/node_modules
-... (raw error prints immediately) ...
-
-── errsplain ────────────────────────────────────────────────────
-⚡ You don't have write permission to /usr/local/lib. Run:
-   sudo npm install -g <package>
-─────────────────────────────────────────────────────────────────
-  run with --raw to see full error only
+────────────────────────────────────────────────────────
+ what  remote branch doesn't exist yet
+ fix   git push --set-upstream origin fake-branch
+────────────────────────────────────────────────────────
 ```
 
-## How it works
+```
+$ pip3 install tensorflow
+ERROR: Could not find a version that satisfies the requirement tensorflow (from versions: none)
+ERROR: No matching distribution found for tensorflow
 
-- Runs your command normally — stdout/stderr print **immediately**, zero delay
-- If exit code is non-zero, **streams** a 1-2 sentence explanation from Claude Haiku
-- First word of explanation appears in ~200-400ms (time-to-first-token)
-- Raw error is always shown first — the AI summary appears below it
-- Short input = fast response: stderr is trimmed to last 15 lines before sending
+────────────────────────────────────────────────────────
+ what  tensorflow doesn't support Python 3.14 yet
+ fix   python3.13 -m pip install tensorflow
+ tip   tensorflow supports up to Python 3.13
+────────────────────────────────────────────────────────
+```
 
-## Install
+---
+
+## how it works
+
+- runs your command normally — output prints **immediately**, zero delay
+- if it fails, explains the error using an LLM
+- **self-routing**: fast `llama-3.1-8b` handles simple errors; escalates to `llama-3.3-70b` when it flags the problem as too complex
+- **live registry lookups**: pip errors hit PyPI, npm errors hit the npm registry, brew hits Homebrew, gem hits RubyGems — real version data, not hallucinated fixes
+- fix command is **auto-copied to clipboard**
+- confidence bar only shown when the model is uncertain (< 60%)
+- **zero dependencies** — uses Node's built-in `fetch`, no `node_modules`
+
+---
+
+## install
+
+**requirements**: Node.js ≥ 18, macOS
 
 ```bash
-git clone <this repo>
-cd errsplain
-npm install
-npm link        # makes `ep` and `errsplain` available globally
+git clone https://github.com/utsav-develops/clifr
+cd clifr
+npm link
 ```
 
-## Setup
+get a **free** Groq API key at [console.groq.com](https://console.groq.com) — no credit card needed.
 
 ```bash
-ep --setup      # prompts for your Anthropic API key, saves to ~/.config/errsplain/config.json
+ep --setup
+# or
+clifr --setup
 ```
 
-Or set it as an env var:
+---
+
+## usage
+
+both `ep` and `clifr` are the same command — use whichever you prefer.
+
+### prefix mode
+
+wrap any command with `ep` or `clifr`:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
-
-## Usage
-
-```bash
-ep <any command>
-
 ep git push origin main
 ep npm install
+ep pip3 install tensorflow
 ep brew install node
-ep python train.py
-ep docker build .
+ep gem install rails
 ```
 
-## Options
+### shell hook — recommended
 
-```
---raw              Skip AI explanation, just run the command
---setup            Configure API key
---install-hook     Add auto-explain hook to .zshrc / .bashrc (experimental)
---version          Show version
-```
-
-## Shell hook (optional)
-
-Instead of prefixing every command with `ep`, you can install a shell hook that watches for any failing command and explains it automatically:
+install once, and every failing command in your terminal gets explained automatically. no prefix needed.
 
 ```bash
 ep --install-hook
-source ~/.zshrc
+source ~/.zshrc   # or ~/.bashrc
 ```
 
-Note: hook mode only shows the summary after the fact. `ep <cmd>` mode is recommended for the best experience — raw output + summary in one flow.
+after that, just use your terminal normally:
 
-## Config
+```
+$ pip3 install tensorflow
+ERROR: No matching distribution found for tensorflow
 
-API key is saved to `~/.config/errsplain/config.json`. You can also set `ANTHROPIC_API_KEY` in your environment — the env var takes precedence.
+────────────────────────────────────────────────────────
+ what  tensorflow doesn't support Python 3.14 yet
+ fix   python3.13 -m pip install tensorflow
+────────────────────────────────────────────────────────
+```
 
-## Why Haiku?
+---
 
-Claude Haiku has the lowest time-to-first-token of Anthropic's models (~200-400ms for short prompts). Combined with streaming, the user sees the first word of the explanation almost immediately after the raw error finishes printing. Larger models would add 1-3 seconds of waiting — enough to break the feeling of "instant".
+## options
+
+| command             | description                                     |
+| ------------------- | ----------------------------------------------- |
+| `ep --setup`        | save your Groq API key                          |
+| `ep --install-hook` | auto-explain all failing commands in your shell |
+| `ep --raw <cmd>`    | run a command without explanation               |
+| `ep --version`      | show version                                    |
+
+| env var         | description                                   |
+| --------------- | --------------------------------------------- |
+| `CLIFR_OFF=1`   | temporarily disable the shell hook            |
+| `CLIFR_DEBUG=1` | show registry lookups and raw model responses |
+
+---
+
+## ecosystem support
+
+| ecosystem    | registry         | what clifr fetches                                        |
+| ------------ | ---------------- | --------------------------------------------------------- |
+| Python / pip | PyPI             | latest version, `requires_python`, tested Python versions |
+| Node / npm   | npm registry     | latest version, engine requirements                       |
+| Homebrew     | formulae.brew.sh | formula version, description                              |
+| Ruby / gem   | RubyGems         | gem version, Ruby requirement                             |
+
+---
+
+## why it's fast
+
+Groq's hardware is built for inference speed. `llama-3.1-8b-instant` has a time-to-first-token of ~200ms on short prompts. For most errors the explanation appears almost immediately after the command output. The 70b model only kicks in when the 8b flags an error as too complex (version conflicts, dependency issues, etc.).
+
+---
+
+## contributing
+
+see [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+---
+
+## license
+
+MIT © [Utsav Acharya](https://github.com/utsav-develops)
