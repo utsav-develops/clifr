@@ -1,0 +1,26 @@
+{
+  "name": "clifr",
+  "version": "1.0.0",
+  "description": "AI-powered terminal error summarizer — explains errors in plain English as they happen",
+  "bin": {
+    "clifr": "./bin/clifr.js",
+    "ep": "./bin/clifr.js"
+  },
+  "type": "module",
+  "main": "./bin/clifr.js",
+  "scripts": {
+    "link": "npm link"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "cli",
+    "terminal",
+    "error",
+    "ai",
+    "llm"
+  ],
+  "license": "MIT"
+}
